@@ -16,8 +16,7 @@ workflow.
 data/
 ├── raw/               # Original invoice-level dataset (excluded from GitHub)
 └── processed/         # Cleaned and aggregated monthly revenue data
-    ├── monthly_revenue.csv
-    └── data_quality_report.txt
+    └── monthly_revenue.csv
 ```
 
 ---
@@ -26,10 +25,10 @@ data/
 
 Raw invoice-level data is **not included** in the repository due to licensing restrictions and file size constraints.
 
-The expected file is:
+The expected input file is:
 
 - `online_retail_II.csv`  
-  A transactional dataset containing the following typical fields:
+  An invoice-level e-commerce dataset containing fields such as:
 
   - Invoice / InvoiceNo  
   - StockCode  
@@ -40,71 +39,69 @@ The expected file is:
   - CustomerID  
   - Country  
 
-This file must be placed manually into:
+For local execution, the raw dataset should be placed at:
 
 ```
 data/raw/online_retail_II.csv
 ```
 
+This raw data is not consumed directly by analysis scripts.
+
 ---
 
-## 2. Processed Data (`data/processed/`)
+## 2. Data Cleaning and Aggregation
 
-This directory contains all **cleaned and aggregated outputs** produced by:
+Data preprocessing is performed **before analysis**, using a deterministic ETL workflow implemented in SQL and Python.
 
-- `data/make_dataset.py`
-- or the SQL pipeline under `sql/`
+### SQL-based ETL
 
-### Files generated:
+Invoice-level data is ingested, validated, cleaned, and aggregated using MySQL scripts located in the `sql/` directory:
 
-#### `monthly_revenue.csv`
-Monthly aggregated dataset containing:
+- removal of cancelled invoices and invalid quantities/prices  
+- timestamp parsing and normalization  
+- country-level filtering  
+- aggregation from invoice-level to monthly metrics  
+
+The final output of the SQL pipeline is a monthly revenue table consistent with the Python analysis interface.
+
+### Python-based Processing
+
+All Python analysis and modeling scripts load data exclusively from:
+
+```
+data/processed/monthly_revenue.csv
+```
+
+via the centralized loader in:
+
+```
+utils/load_data.py
+```
+
+This guarantees consistent preprocessing across all experiments.
+
+---
+
+## 3. Processed Data (`data/processed/`)
+
+### `monthly_revenue.csv`
+
+The final, analysis-ready dataset containing:
 
 | column         | description                             |
 |----------------|-----------------------------------------|
 | year_month     | First day of the month (YYYY-MM-01)     |
-| total_revenue  | Sum(Quantity × UnitPrice)               |
-| num_orders     | Distinct invoice count                  |
+| total_revenue  | Monthly total revenue                   |
+| num_orders     | Distinct number of invoices             |
 
-#### `data_quality_report.txt`
-A diagnostic report summarizing:
-
-- missing values  
-- negative quantities  
-- invalid timestamps  
-- customer ID anomalies  
-- duplicate invoice rows  
+This file is version-controlled and serves as the single source of truth for all figures and models.
 
 ---
 
-## 3. Reproducibility Workflow
+## 4. Reproducibility Notes
 
-You may rebuild processed data using either method:
+- Raw data is excluded from version control.
+- Cleaning logic is explicit and reproducible via SQL and Python scripts.
+- All figures (Fig.01–Fig.11) are generated solely from `monthly_revenue.csv`.
 
-### Option A — Python ETL
-```
-python data/make_dataset.py \
-    --raw data/raw/online_retail_II.csv \
-    --out data/processed/monthly_revenue.csv \
-    --report data/processed/data_quality_report.txt
-```
-
-### Option B — SQL Pipeline
-Run the scripts under:
-
-```
-sql/00_setup.sql
-sql/01_load_raw_online_retail.sql
-sql/02_clean_transform.sql
-sql/03_monthly_aggregation.sql
-sql/04_validation_checks.sql
-```
-
----
-
-## 4. Notes
-
-- Raw datasets are excluded via `.gitignore`.
-- All figures in the report (Fig.01–Fig.11) are generated from `processed/`.
-- SQL and Python pipelines are fully consistent and generate identical monthly revenue outputs.
 
