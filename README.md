@@ -53,7 +53,7 @@ A more detailed mapping between scripts and output figures is provided in:
 This project is based on the Online Retail II transactional dataset (UCI Machine Learning Repository):
 
 Chen, D. (2015). Online Retail II Data Set.  
-https://archive.ics.uci.edu/dataset/352/online+retail
+https://www.kaggle.com/datasets/mashlyn/online-retail-ii-uci
 
 The raw transaction-level CSV is not included in this repository (licensing / size considerations). This repo includes the cleaned and aggregated monthly dataset used by all Python scripts:
 
