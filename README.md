@@ -1,217 +1,192 @@
 # Monthly Revenue Analytics
 
-This repository contains a reproducible data analysis and modeling workflow for monthly revenue data.  
+This repository contains a reproducible data analysis and modeling workflow for monthly revenue data.
 The objective is to characterize revenue dynamics, quantify underlying drivers, and evaluate predictive and stochastic models in a controlled, well-structured environment.
 
-The codebase is modular, script-driven, and designed to support traceable experimentation rather than monolithic notebooks.  
-All figures and statistics are generated directly from the scripts under `monthly_revenue_analysis/`.
+The codebase is modular and script-driven (rather than notebook-first) to keep the workflow traceable and easy to re-run.
+All figures, metrics, and intermediate artifacts are generated directly from the scripts under `monthly_revenue_analysis/`.
 
 ---
 
 ## Key Methodology
 
-- **Trend and seasonality diagnostics**  
-  Smoothing, peak identification, and month-aligned YoY comparison to isolate cyclic structure.
+- **Trend and seasonality diagnostics**
+  Smoothing, peak identification, month-aligned YoY comparisons, rolling-window summaries, and distributional views to isolate cyclic structure and regime shifts.
 
-- **Deterministic driver decomposition**  
-  Revenue is analyzed as `Orders × AOV`, allowing separation between volume-driven and price-driven effects.
+- **Deterministic driver decomposition**
+  Revenue is analyzed as `Revenue = Orders × AOV` to separate volume-driven effects from basket/price-driven effects.
 
-- **Predictive modeling**  
-  Linear Regression and Random Forest models using lag features and month encodings.  
-  Holdout evaluation is used instead of random shuffle to maintain time consistency.
+- **Predictive modeling (time-consistent evaluation)**
+  Linear Regression and Random Forest models using lag features and calendar encodings.
+  Evaluation uses a chronological holdout split (no random shuffle) to preserve time consistency.
 
-- **Stochastic simulation**  
-  Revenue uncertainty is modeled using a Normal distribution for orders and a Gamma distribution for AOV.  
-  Monte Carlo draws enable estimation of downside risk and tail behavior.
+- **Stochastic simulation (uncertainty and tail behavior)**
+  Orders and AOV are modeled with parametric distributions and sampled via Monte Carlo to estimate uncertainty, downside probability, and tail risk summaries.
 
-- **Reproducibility**  
-  Deterministic seeds, centralized data loading, and isolated scripts ensure consistent execution.
+- **Reproducibility**
+  Deterministic seeds, centralized data loading, and standardized artifact writing ensure consistent runs across environments.
 
 ---
 
 ## Repository Structure
 
+
 ```
 monthly_revenue_analysis/
 │
-├── analysis/              # Trend, seasonality, YoY, driver diagnostics
-├── modelling/             # Predictive models and Monte Carlo simulation
+├── data/                  # Processed data (raw data excluded)
 ├── utils/                 # Data loaders, plot styling, helper utilities
+├── scripts/               # Main pipeline scripts
+│     ├── analysis/        # Fig.01–Fig.09 (trend/seasonality/driver diagnostics)
+│     └── modeling/        # Fig.10–Fig.11 (models + simulation)
+├── sql/                   # SQL ETL pipeline (raw transactions → cleaned monthly panel) + validation checks
+├── experiments/           # Config-driven experiments (copula stress test, bootstrap UQ, decision threshold)
 ├── figures/               # Generated figures (Fig.01–Fig.11)
-└── data/                  # Processed data (raw data excluded)
-└── experiments/           # Config-driven experiments (copula stress test, bootstrap UQ, decision threshold)
-└── sql/                   # SQL ETL pipeline (raw transactions → cleaned monthly panel) + validation checks
+└── run_all.py # One-click runner for the main pipeline
 ```
 
+
 A more detailed mapping between scripts and output figures is provided in:
-
 `monthly_revenue_analysis/README.md`
-
-## Data Source and Data Cleaning Pipeline
-
-### Data Source
-
-This project is based on the Online Retail II transactional dataset, originally published by the UCI Machine Learning Repository:
-
-Chen, D. (2015). Online Retail II Data Set.
-https://archive.ics.uci.edu/dataset/352/online+retail
-
-The dataset contains all transactions occurring between 01/12/2009 and 09/12/2011 for a UK-based online retail company. Each record corresponds to a single line item in a customer order.
-
-Raw data fields include:
-- InvoiceNo: Transaction identifier
-- StockCode: Product identifier
-- Description: Product description
-- Quantity: Number of units purchased (can be negative for returns)
-- InvoiceDate: Transaction timestamp
-- UnitPrice: Price per unit
-- CustomerID: Anonymized customer identifier
-- Country: Customer country
-
-NOTE:
-Due to licensing and file size considerations, the raw dataset (online_retail_II.csv) is not included in this repository.
-The cleaned and aggregated dataset used for analysis is provided in:
-data/processed/monthly_revenue.csv
-
-
-### Data Cleaning and Preprocessing
-
-The raw transaction-level data undergoes a structured ETL (Extract–Transform–Load) process implemented via SQL scripts located in the sql/ directory.
-The objective is to produce a clean, interpretable monthly revenue time series suitable for descriptive analysis, trend decomposition, and forecasting.
-
-
-Step 1: Raw Data Ingestion
-
-- Raw CSV data is imported into MySQL using sql/00_setup.sql
-- All fields are ingested without transformation to preserve original information
-
-
-Step 2: Transaction Filtering
-
-The following filters are applied to remove invalid or non-economic transactions:
-
-- Cancelled invoices removed
-  Transactions with InvoiceNo starting with 'C' are excluded.
-
-- Returns and corrections removed
-  Records with Quantity ≤ 0 are excluded.
-
-- Invalid pricing removed
-  Records with UnitPrice ≤ 0 are excluded.
-
-- Missing customer identifiers removed
-  Rows with CustomerID IS NULL are excluded.
-
-These rules follow standard practices in retail transaction analysis and ensure that revenue values reflect completed sales only.
-
-
-Step 3: Revenue Computation
-
-For each valid transaction line, revenue is computed as:
-
-Revenue = Quantity × UnitPrice
-
-The revenue is calculated at the line-item level and stored as a derived column during transformation.
-
-
-Step 4: Temporal Aggregation
-
-- Transaction timestamps are converted to Year–Month format (YYYYMM).
-- Revenue is aggregated at the monthly level:
-
-Monthly Revenue = Σ (Quantity × UnitPrice)
-Monthly Orders  = COUNT(DISTINCT InvoiceNo)
-
-This aggregation produces a monthly panel suitable for time-series analysis while smoothing high-frequency transactional noise.
-
-
-Step 5: Validation Checks
-
-Basic data integrity and sanity checks are performed in sql/04_validation_checks.sql, including:
-- Verification of continuous monthly coverage
-- Detection of zero or negative aggregated revenue
-- Consistency checks of summary statistics
-
-
-### Final Analytical Dataset
-
-The final cleaned dataset is stored at:
-
-data/processed/monthly_revenue.csv
-
-with the following schema:
-
-- year_month: Year–month identifier (YYYYMM)
-- total_revenue: Total revenue in that month
-- num_orders: Number of unique orders in that month
-
-This dataset serves as the single source of truth for all subsequent Python-based analyses and visualizations
-(analysis/01_*.py through analysis/11_*.py).
-
-
-### Reproducibility Note
-
-To fully reproduce the processed dataset from raw data:
-
-1. Download Online Retail II from the UCI repository
-2. Import the raw CSV into MySQL
-3. Execute the SQL pipeline:
-
-mysql -u <user> -p < sql/etl_pipeline.sql
-
-4. Export the resulting monthly table to data/processed/monthly_revenue.csv
-
-Alternatively, users may directly run the Python analysis scripts using the provided processed dataset.
-
 
 ---
 
-## Running the Project
+## Data Source
 
-Setup:
+This project is based on the Online Retail II transactional dataset (UCI Machine Learning Repository):
 
-```
+Chen, D. (2015). Online Retail II Data Set.  
+https://archive.ics.uci.edu/dataset/352/online+retail
+
+The raw transaction-level CSV is not included in this repository (licensing / size considerations).
+This repo includes a cleaned and aggregated monthly panel used by the Python scripts:
+
+- `monthly_revenue_analysis/data/processed/monthly_revenue.csv`
+
+---
+
+## Data Cleaning and ETL Pipeline (SQL)
+
+Transaction-level records are transformed into a monthly revenue panel using SQL scripts in `monthly_revenue_analysis/sql/`.
+The goal is to remove non-economic entries and produce a clean time series suitable for trend diagnostics and forecasting-style evaluation.
+
+Step 1 — Raw ingestion  
+- Import the raw CSV into MySQL staging tables (see `sql/00_setup.sql` and `sql/01_load_raw_online_retail.sql`).
+- Ingest fields without transformation to preserve original information.
+
+Step 2 — Transaction filtering  
+Remove invalid or non-economic records:
+- **Cancelled invoices removed**: exclude rows where `InvoiceNo` starts with `'C'`.
+- **Returns/corrections removed**: exclude rows where `Quantity <= 0`.
+- **Invalid pricing removed**: exclude rows where `UnitPrice <= 0`.
+- **Missing customer identifiers removed**: exclude rows where `CustomerID IS NULL`.
+
+Step 3 — Revenue computation  
+- Compute line-item revenue: `Revenue = Quantity × UnitPrice`.
+
+Step 4 — Monthly aggregation  
+- Convert `InvoiceDate` to `YYYYMM`.
+- Aggregate to monthly:
+  - `total_revenue = Σ Revenue`
+  - `num_orders = COUNT(DISTINCT InvoiceNo)`
+
+Step 5 — Validation checks  
+- Sanity checks are implemented in `sql/04_validation_checks.sql` (coverage checks, negative/zero revenue detection, summary consistency).
+
+The final analytical dataset is stored at:
+- `monthly_revenue_analysis/data/processed/monthly_revenue.csv`
+
+Schema:
+- `year_month` (YYYYMM)
+- `total_revenue`
+- `num_orders`
+
+For full MySQL setup and exact SQL execution order, see:
+- `monthly_revenue_analysis/sql/README.md`
+
+---
+
+## Installation
+
+From the repository root:
+
 pip install -r requirements.txt
-```
 
-Run any analysis module (example):
+## Reproducible Runs
 
-```
-python analysis/01_smoothed_trend.py
-```
+### One-click main pipeline (recommended)
 
-Model comparison and simulation:
+Command:
+python monthly_revenue_analysis/run_all.py --save
 
-```
-python modelling/10_model_comparison_lr_rf.py
-python modelling/11_monte_carlo_simulation.py
-```
+What it does:
+- Executes the full pipeline (Fig.01–Fig.11) in a fixed order
+- Writes figures + metrics artifacts to disk
 
-Scripts display figures interactively and log intermediate results when relevant.
+### Run a single script (example)
+
+Command:
+python monthly_revenue_analysis/scripts/analysis/fig01_smoothed_trend.py
+
+### Run modeling & simulation modules
+
+Commands:
+python monthly_revenue_analysis/scripts/modeling/10_model_comparison_LR_RF.py
+python monthly_revenue_analysis/scripts/modeling/11_monte_carlo_simulation.py
+
+Note:
+- The monthly panel covers a limited time span (roughly 2010–2011, ~24 monthly observations).
+- The modeling focus is therefore on interpretability, time-consistent evaluation, and uncertainty quantification rather than high-capacity forecasting.
+
+---
+
+## Outputs
+
+When running with --save, artifacts are written to:
+- monthly_revenue_analysis/outputs/latest/figures/
+- monthly_revenue_analysis/outputs/latest/metrics/
+
+Behavior:
+- If outputs/ does not exist, it is created automatically.
+- These runtime artifacts are intended for reproduction and review and are typically excluded from version control.
+
+---
+
+## Advanced Experiments (Optional)
+
+Location:
+- monthly_revenue_analysis/experiments/
+
+What’s included:
+- Copula dependence sweep (dependence stress test)
+- Bootstrap uncertainty quantification (parameter uncertainty intervals)
+- Decision threshold loop (simple risk-constraint search)
+
+Run an experiment (example):
+python monthly_revenue_analysis/experiments/scripts/run_experiment.py --config monthly_revenue_analysis/experiments/configs/exp_copula_rho_sweep.yaml
+
+Experiment outputs:
+- monthly_revenue_analysis/experiments/outputs/<timestamp>_<experiment_name>/
+
+Behavior:
+- The output directory is created automatically if missing.
 
 ---
 
 ## Report
 
-A consolidated document with the generated figures (Fig.01–Fig.11) is available at:
-
-```
-03.pdf
-```
-
-This document mirrors the output produced by the analysis and modeling scripts.
+PDF:
+monthly_revenue_analysis.pdf
 
 ---
 
 ## Author
 
-Zhong Yuyang  
-GitHub: https://github.com/temper-z-debug  
-Email: <zhongyuyangm4@gmail.com> 
+Zhong Yuyang
+Email: zhongyuyangm4@gmail.com
 
 ---
 
 ## License
 
-MIT License.
-
+MIT License
