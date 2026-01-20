@@ -48,6 +48,36 @@ The core pipeline lives under `monthly_revenue_analysis/`. Optional research-sty
 
 ---
 
+## Key Findings (Selected)
+
+> Note: The monthly panel spans a limited period (~2010–2011, ~24 observations).  
+> I therefore emphasize interpretability, time-consistent evaluation, and uncertainty/risk quantification over high-capacity forecasting.
+
+### 1) Revenue dynamics are driven by both volume and ticket size (Orders × AOV)
+I model revenue as **Orders × AOV** to separate volume-driven and price-driven effects, which helps interpret whether changes are driven by demand (orders) or monetization (AOV), rather than treating revenue as a single opaque series.
+
+### 2) Time-consistent evaluation matters more than model complexity here
+Given the short panel, I avoid shuffled splits and use holdout-style evaluation to preserve temporal ordering. The goal is not to “win” on accuracy, but to produce a defensible comparison that mirrors real forecasting conditions.
+
+### 3) Tail risk is sensitive to dependence — independence can understate downside risk
+In the **copula dependence stress test**, I keep the fitted marginals fixed (Orders, AOV) and vary only the dependence structure (Gaussian copula ρ).  
+The tail metrics shift materially as ρ changes:
+
+- When dependence becomes more positive (ρ from 0.0 → 0.3), both **VaR(5%) and CVaR(5%) move downward**, indicating a worse downside tail.
+- This implies that assuming independence (ρ = 0) can **overestimate** the 5% quantile and **underestimate** tail risk if the true dependence is positive.
+
+(Experiment setup: 50,000 Monte Carlo samples per seed, aggregated over multiple seeds; CI reported as mean ± 1.96·SE.)
+
+### 4) A practical risk view: downside probability against a threshold
+Beyond VaR/CVaR, I track the probability that simulated revenue falls below a reference threshold **T** (chosen automatically as a fraction of the empirical level).  
+This reframes the result as a decision-relevant quantity: “How often do we miss a revenue target under uncertainty?”
+
+### 5) Reproducibility is treated as a first-class requirement
+The pipeline is script-driven and deterministic where appropriate (fixed seeds; centralized loaders).  
+Outputs are written to standard locations so results can be regenerated and audited without manual steps.
+
+---
+
 ## Repository structure
 
 ```text
