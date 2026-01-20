@@ -12,25 +12,16 @@ monthly_revenue_analysis/outputs/experiments/<timestamp>_<experiment_name>/
 -------------------------------------------------------------------------------
 
 Folder Structure
-
+```text
 experiments/
 ├── configs/                  # YAML configs (single source of truth)
-│   ├── exp_bootstrap_uq.yaml
-│   ├── exp_copula_rho_sweep.yaml
-│   ├── exp_decision_threshold.yaml
-│   └── seeds.yaml
 ├── scripts/
-│   └── run_experiment.py     # unified runner: config -> run -> outputs
+│     └── run_experiment.py   # unified runner: config -> run -> outputs
 ├── src/
 │   ├── explain/              # optional explanatory helpers (if used)
 │   └── sim/                  # reusable experiment logic (copula, metrics, utils)
-│       ├── copula.py
-│       ├── distributions.py
-│       ├── experiment.py
-│       ├── metrics.py
-│       └── utils.py
 └── README.md
-
+```
 -------------------------------------------------------------------------------
 
 Quick Start
@@ -111,3 +102,4 @@ These experiments are designed to demonstrate:
 - counterfactual reasoning (vary dependence while fixing marginals),
 - uncertainty quantification beyond point estimates,
 - decision-ready risk constraints (not just forecasting accuracy).
+
