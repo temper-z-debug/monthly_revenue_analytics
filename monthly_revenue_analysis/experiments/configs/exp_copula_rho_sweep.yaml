@@ -1,0 +1,32 @@
+experiment:
+  name: copula_rho_sweep
+  output_root: experiments/outputs
+  seeds: [ 1, 2, 3 ]
+
+
+data:
+  monthly_revenue_csv: monthly_revenue_analysis/data/processed/monthly_revenue.csv
+
+model:
+  marginals:
+    orders:
+      dist: truncnorm
+    aov:
+      dist: gamma
+  dependence:
+    type: gaussian_copula
+    rhos: [-0.3, 0.0, 0.3, "rho_hat"]
+
+simulation:
+  n_samples: 50000
+  alpha: 0.05
+  threshold_T:
+    type: auto
+    auto_ratio: 0.90
+    seed: 42
+
+plots:
+  cdf: true
+  inset_tail:
+    enabled: true
+    p_max: 0.10

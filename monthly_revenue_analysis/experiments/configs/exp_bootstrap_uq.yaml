@@ -1,0 +1,27 @@
+experiment:
+  name: bootstrap_uq
+  output_root: experiments/outputs
+  seed: 123
+
+data:
+  monthly_revenue_csv: monthly_revenue_analysis/data/processed/monthly_revenue.csv
+
+model:
+  marginals:
+    orders:
+      dist: truncnorm
+    aov:
+      dist: gamma
+  dependence:
+    type: gaussian_copula
+    rho: "rho_hat"
+
+bootstrap:
+  n_boot: 500
+  inner_mc: 20000
+
+simulation:
+  alpha: 0.05
+
+plots:
+  interval_plot: true

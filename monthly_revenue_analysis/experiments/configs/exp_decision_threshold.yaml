@@ -1,0 +1,33 @@
+experiment:
+  name: decision_threshold
+  output_root: experiments/outputs
+  seed: 7
+
+data:
+  monthly_revenue_csv: monthly_revenue_analysis/data/processed/monthly_revenue.csv
+
+model:
+  marginals:
+    orders:
+      dist: truncnorm
+    aov:
+      dist: gamma
+  dependence:
+    type: gaussian_copula
+    rho: 0.0
+
+simulation:
+  n_samples: 50000
+
+decision:
+  risk_alpha: 0.10
+  T_search:
+    method: bisection
+    tol: 1e-3
+    max_iter: 40
+    # bounds are auto-derived from mean revenue
+    T_min_ratio: 0.0
+    T_max_ratio: 1.5
+
+plots:
+  threshold_curve: true
