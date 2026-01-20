@@ -39,6 +39,8 @@ monthly_revenue_analysis/
 ├── utils/                 # Data loaders, plot styling, helper utilities
 ├── figures/               # Generated figures (Fig.01–Fig.11)
 └── data/                  # Processed data (raw data excluded)
+└── experiments/           # Config-driven experiments (copula stress test, bootstrap UQ, decision threshold)
+└── sql/                   # SQL ETL pipeline (raw transactions → cleaned monthly panel) + validation checks
 ```
 
 A more detailed mapping between scripts and output figures is provided in:
